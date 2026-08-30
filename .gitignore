@@ -1,0 +1,110 @@
+# Strict clean-repository policy:
+# ignore everything unless explicitly allowed below.
+*
+!*/
+
+# Source code and reproducibility documentation.
+!src/**/*.py
+!legacy/**/*.py
+!tests/**/*.py
+!docs/**/*.md
+!data/README.md
+!README.md
+!AGENTS.md
+!CITATION.cff
+!pyproject.toml
+!uv.lock
+!.python-version
+!.gitignore
+!.env.example
+
+# Local data, generated data, batch files, state, logs, and outputs.
+data/**
+!data/
+!data/README.md
+logs/**
+output/**
+outputs/**
+results/**
+artifacts/**
+batches/**
+batch/**
+state/**
+tmp/**
+temp/**
+
+# Python and tool caches.
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments and local package caches.
+.venv/
+venv/
+env/
+ENV/
+.envrc
+.uv-cache/
+.cache/
+
+# OpenAI Batch inputs/outputs and local state regardless of location.
+*batch_input*.jsonl
+*batch_output*.jsonl
+*batch_errors*.jsonl
+*batch*.jsonl
+*batch*_state.json
+*state.json
+*_state.json
+*.log
+*.jsonl.tmp
+*.xml.tmp
+
+# PubMed/raw/generated data formats.
+*.csv
+*.jsonl
+*.xml
+
+# Documents and archives that must not enter the clean repository.
+*.pdf
+*.docx
+*.xlsx
+*.xls
+*.odt
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+
+# Secrets and credentials.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*credential*
+*credentials*
+*secret*
+*token*
+*apikey*
+*api_key*
+
+# Editor/OS-local files.
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+~$*
+*.tmp

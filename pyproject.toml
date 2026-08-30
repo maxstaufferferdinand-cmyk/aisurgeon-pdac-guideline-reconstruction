@@ -1,0 +1,12 @@
+[project]
+name = "aisurgeon-pdac-guideline-reconstruction"
+version = "0.1.0"
+description = "Clean reproducibility scripts for the AISurgeon PDAC guideline reconstruction proof of concept"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.32.0,<3",
+]
+
+[tool.uv]
+package = false
