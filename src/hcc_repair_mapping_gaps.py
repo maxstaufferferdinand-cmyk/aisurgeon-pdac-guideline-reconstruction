@@ -70,7 +70,7 @@ def salvage_coverage_errors(hcc_root: Path) -> dict[str, Any]:
 
 
 def missing_pmids(hcc_root: Path) -> list[str]:
-    selected = load_csv(hcc_root / "data" / "selected_evidence_v2.csv")
+    selected, _fields = load_csv(hcc_root / "data" / "selected_evidence_v2.csv")
     completed = completed_pmids_from_outputs(hcc_root / "data" / "gpt_mapping_appraisal_direct")
     return [row["pmid"] for row in selected if row["pmid"] not in completed]
 
@@ -86,7 +86,8 @@ def repair_missing(
     if not pmids:
         return {"repair_chunks": 0, "repair_pmids": 0}
     out = hcc_root / "data" / "gpt_mapping_appraisal_direct"
-    selected_by_pmid = {row["pmid"]: row for row in load_csv(hcc_root / "data" / "selected_evidence_v2.csv")}
+    selected_rows, _fields = load_csv(hcc_root / "data" / "selected_evidence_v2.csv")
+    selected_by_pmid = {row["pmid"]: row for row in selected_rows}
     units = ontology_units(read_json(hcc_root / "data" / "ontology_v1.json"))
     client = OpenAIResponses(os.environ.get("OPENAI_API_KEY", "").strip(), retry_wait)
     completed_chunks = 0

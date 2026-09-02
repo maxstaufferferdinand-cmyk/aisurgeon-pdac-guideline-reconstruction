@@ -203,6 +203,50 @@ def reset_failed_to_retry(hcc_root: Path) -> dict[str, int]:
     return {"failed_chunks_reset_to_retry": reset_count}
 
 
+def cancel_queued_to_retry(hcc_root: Path, client: Client) -> dict[str, int]:
+    state = load_state(hcc_root)
+    reset_count = 0
+    cancel_attempts = 0
+    cancel_successes = 0
+    cancel_failures = 0
+    for chunk in state.get("chunks", []):
+        if chunk.get("status") != "queued":
+            continue
+        cancel_record: dict[str, Any] = {
+            "attempted_at": utc_now(),
+            "response_id": chunk.get("response_id"),
+        }
+        response_id = chunk.get("response_id")
+        if response_id:
+            cancel_attempts += 1
+            try:
+                response = client.request("POST", f"/responses/{response_id}/cancel", timeout=120)
+                cancel_record.update(
+                    {
+                        "http_status": 200,
+                        "result_status": response.get("status"),
+                        "request_id": response.get("id"),
+                    }
+                )
+                cancel_successes += 1
+            except RuntimeError as exc:
+                cancel_record.update({"http_status": "error", "error_category": str(exc)[:500]})
+                cancel_failures += 1
+        chunk.setdefault("cancel_history", []).append(cancel_record)
+        chunk["status"] = "retry"
+        chunk["reset_at"] = utc_now()
+        chunk["previous_response_id"] = chunk.pop("response_id", None)
+        reset_count += 1
+    if reset_count:
+        save_state(hcc_root, state)
+    return {
+        "queued_chunks_reset_to_retry": reset_count,
+        "cancel_attempts": cancel_attempts,
+        "cancel_successes": cancel_successes,
+        "cancel_failures": cancel_failures,
+    }
+
+
 def parse_completed(hcc_root: Path, chunk: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
     out = hcc_root / "data" / "gpt_mapping_appraisal_direct"
     raw_path = out / f"{chunk['chunk_id']}_raw_response.json"
@@ -286,11 +330,14 @@ def run(
     retry_wait: int,
     poll_only: bool,
     reset_failed: bool,
+    cancel_queued: bool,
 ) -> None:
     prepare_chunks(hcc_root, chunk_size)
+    client = Client(os.environ.get("OPENAI_API_KEY", "").strip(), retry_wait)
     if reset_failed:
         print(json.dumps(reset_failed_to_retry(hcc_root), sort_keys=True))
-    client = Client(os.environ.get("OPENAI_API_KEY", "").strip(), retry_wait)
+    if cancel_queued:
+        print(json.dumps(cancel_queued_to_retry(hcc_root, client), sort_keys=True))
     while True:
         if not poll_only:
             submit_ready(hcc_root, client, model, max_in_flight, max_output_tokens)
@@ -324,6 +371,11 @@ def main() -> int:
         action="store_true",
         help="Explicitly reset failed chunks to retry after a provider/account problem has been fixed.",
     )
+    parser.add_argument(
+        "--cancel-queued-to-retry",
+        action="store_true",
+        help="Cancel currently queued background responses and reset only those chunks to retry.",
+    )
     args = parser.parse_args()
     run(
         Path(args.hcc_root),
@@ -335,6 +387,7 @@ def main() -> int:
         args.retry_wait,
         args.poll_only,
         args.reset_failed_to_retry,
+        args.cancel_queued_to_retry,
     )
     return 0
 
